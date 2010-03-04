@@ -1,0 +1,77 @@
+<?php
+// $Id$
+
+
+/**
+ * @file
+ * Main module. Limit access to site for predefined time period.
+ *
+ */
+
+
+/**
+ * Implementation of hook_perm().
+ */
+function time_limit_perm() {
+  return array(
+    "administer time limit",
+  );
+}
+
+
+/**
+ *      Implementing hook_menu()
+ */
+function time_limit_menu() {
+  $items = array();
+
+  $items['admin/settings/time_limit'] = array(
+    'title'             => 'Time limit settings',
+    'page callback'     => 'drupal_get_form',
+    'page arguments'    => array('time_limit_settings'),
+    'access callback'   => 'user_access',
+    'access arguments'  => array('administer time limit'),
+    'file'              => 'time_limit.admin.inc',
+  );
+
+  return $items;
+}
+
+
+/**
+ *      Implementing hook_init()
+ */
+function time_limit_init() {
+  global $user;
+
+  $paths = variable_get('time_limit_exclude', "user/register\nuser/login\nuser/password") ;
+  $paths .= "\n". variable_get('time_limit_landing_page', "user/register");
+
+  // Check only anonymous users
+  if ($user->uid == 0 && !_time_limit_match_pages($paths)) {
+    // If this user already visited site - check how long he was on site.
+    if ($_SESSION['firstvisit'] > 0) {
+      if (time() - $_SESSION['firstvisit'] >= variable_get('time_limit_time', 300)) {
+        $message = variable_get('time_limit_message', 'Please, register or login to continue useing of the site.');
+        drupal_set_message($message);
+        drupal_goto(variable_get('time_limit_landing_page', 'user/register'));
+      }
+    }
+    // Otherwise - save timestamp of the first visit in session
+    else {
+      $_SESSION['firstvisit'] = time();
+    }
+  }
+}
+
+
+function _time_limit_match_pages($pages) {
+  $path = drupal_get_path_alias($_GET['q']);
+  // Compare with the internal and path alias (if any).
+  $page_match = drupal_match_path($path, $pages);
+  if ($path != $_GET['q']) {
+    $page_match = $page_match || drupal_match_path($_GET['q'], $pages);
+  }
+
+  return $page_match;
+}

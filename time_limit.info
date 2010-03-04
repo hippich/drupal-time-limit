@@ -1,0 +1,9 @@
+; $Id$
+
+name = Time Limit
+description = Limit time anonymous users can browse site and redirect them to predifined page after some predefined amount of time.
+package = Yep Corp Limited
+core = 6.x
+version = "6.x-0.1"
+
+
