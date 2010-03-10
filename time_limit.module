@@ -1,6 +1,7 @@
 <?php
 // $Id$
 
+define('TIME_LIMIT_ALWAYS_SHOW', "user\nuser/login");
 
 /**
  * @file
@@ -27,6 +28,7 @@ function time_limit_menu() {
 
   $items['admin/settings/time_limit'] = array(
     'title'             => 'Time limit settings',
+    'description'       => 'Various settings for Time Limit module',
     'page callback'     => 'drupal_get_form',
     'page arguments'    => array('time_limit_settings'),
     'access callback'   => 'user_access',
@@ -44,11 +46,8 @@ function time_limit_menu() {
 function time_limit_init() {
   global $user;
 
-  $paths = variable_get('time_limit_exclude', "user/register\nuser/login\nuser/password") ;
-  $paths .= "\n". variable_get('time_limit_landing_page', "user/register");
-
   // Check only anonymous users
-  if ($user->uid == 0 && !_time_limit_match_pages($paths)) {
+  if ($user->uid == 0 && time_limit_check()) {
     // If this user already visited site - check how long he was on site.
     if ($_SESSION['firstvisit'] > 0) {
       if (time() - $_SESSION['firstvisit'] >= variable_get('time_limit_time', 300)) {
@@ -64,6 +63,34 @@ function time_limit_init() {
   }
 }
 
+function time_limit_check() {
+  // Just to be sure site is still accessible even after some incorrect settings
+  if (_time_limit_match_pages(TIME_LIMIT_ALWAYS_SHOW)) {
+    return false;
+  }
+
+  $paths = variable_get('time_limit_exclude', "user\nuser/register\nuser/login\nuser/password") ;
+
+  // If we set to show specific paths - add to list landing page path as well
+  if (! variable_get('time_limit_path_exclude', 0)) {
+    $paths .= "\n". variable_get('time_limit_landing_page', "user/register");
+  }
+
+  if (_time_limit_match_pages($paths)) {
+    return variable_get('time_limit_path_exclude', 0);
+  }
+
+  // This is node - check by content type
+  if (arg(0) == 'node' && is_numeric(arg(1))) {
+    $node = node_load(arg(1));
+    $types = variable_get('time_limit_content_types', array());
+    if ($types[$node->type]) {
+      return variable_get('time_limit_content_type_exclude', 0);
+    }
+  }
+
+  return variable_get('time_limit_default_exclude', 1);
+}
 
 function _time_limit_match_pages($pages) {
   $path = drupal_get_path_alias($_GET['q']);
