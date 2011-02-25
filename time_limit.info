@@ -1,4 +1,3 @@
-; $Id$
 
 name = Time Limit
 description = Limit time anonymous users can browse site and redirect them to predifined page after some predefined amount of time.

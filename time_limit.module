@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 define('TIME_LIMIT_ALWAYS_SHOW', "user\nuser/login");
 
